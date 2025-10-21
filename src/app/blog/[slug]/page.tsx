@@ -1,8 +1,5 @@
 // src/app/blog/[slug]/page.tsx
-/**
- * Individual Blog Post Page
- * Dynamic route: /blog/[slug]
- */
+// Replace ENTIRE file:
 
 import Image from "next/image";
 import Link from "next/link";
@@ -10,20 +7,22 @@ import { notFound } from "next/navigation";
 import { getPostBySlug, formatDate } from "@/lib/blog/utils";
 import { mockBlogPosts } from "@/lib/data/blogPosts";
 
-// Generate static params for all posts
+// ✅ Next.js 15: generateStaticParams is sync
 export async function generateStaticParams() {
   return mockBlogPosts.map((post) => ({
     slug: post.slug,
   }));
 }
 
-// Generate metadata for each post
+// ✅ Next.js 15: generateMetadata receives async params
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const post = getPostBySlug(params.slug);
+  // ✅ Await params (Next.js 15 requirement)
+  const { slug } = await params;
+  const post = getPostBySlug(slug);
 
   if (!post) {
     return {
@@ -37,9 +36,17 @@ export async function generateMetadata({
   };
 }
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
+// ✅ Next.js 15: Page component receives async params
+export default async function BlogPostPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  // ✅ Await params (Next.js 15 requirement)
+  const { slug } = await params;
+
   // Get post by slug
-  const post = getPostBySlug(params.slug);
+  const post = getPostBySlug(slug);
 
   // If post not found, show 404
   if (!post) {

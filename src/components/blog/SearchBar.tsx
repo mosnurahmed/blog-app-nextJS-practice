@@ -1,4 +1,6 @@
 // src/components/blog/SearchBar.tsx
+// Replace ENTIRE file with this (quotes fixed):
+
 "use client";
 
 import { useState } from "react";
@@ -17,7 +19,7 @@ export default function SearchBar({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
-    onSearch(value); // Real-time search!
+    onSearch(value);
   };
 
   const handleClear = () => {
@@ -81,7 +83,8 @@ export default function SearchBar({
       {/* Search Results Count */}
       {query && (
         <div className="mt-2 text-sm text-gray-600 text-center">
-          Searching for: <span className="font-semibold">"{query}"</span>
+          Searching for:{" "}
+          <span className="font-semibold">&apos;{query}&apos;</span>
         </div>
       )}
     </div>

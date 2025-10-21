@@ -1,5 +1,5 @@
 // src/app/blog/page.tsx
-// Replace ENTIRE file:
+// Replace ENTIRE file with this (all quotes fixed):
 
 "use client";
 
@@ -230,7 +230,7 @@ export default function BlogPage() {
 
             {searchQuery && (
               <span className="bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
-                🔍 "{searchQuery}"
+                🔍 &apos;{searchQuery}&apos;
                 <button
                   onClick={() => handleSearch("")}
                   className="hover:text-green-600 text-lg leading-none"
@@ -298,7 +298,7 @@ export default function BlogPage() {
             </h3>
             <p className="text-gray-600 mb-6">
               {searchQuery
-                ? `No results for "${searchQuery}"`
+                ? `No results for '${searchQuery}'`
                 : `No posts in ${selectedCategory} category`}
             </p>
             <button

@@ -1,52 +1,49 @@
 // src/components/blog/CategoryFilter.tsx
-"use client";
+// Replace ENTIRE file:
+
+// কি করছি: Category filter buttons component
+// কেন করছি: User কে specific category এর posts filter করতে দিতে
+// কিভাবে: Button group যেটা categories display করে with counts
 
 interface CategoryFilterProps {
-  categories: string[];
+  categories: string[]; // Array of category names
   selectedCategory: string;
   onSelectCategory: (category: string) => void;
-  postCounts?: Record<string, number>;
+  postCounts: Record<string, number>; // { "Next.js": 5, "React": 3 }
 }
 
 export default function CategoryFilter({
   categories,
   selectedCategory,
   onSelectCategory,
-  postCounts = {},
+  postCounts,
 }: CategoryFilterProps) {
+  // Add "All" option at the beginning
+  const allCategories = ["All", ...categories];
+
   return (
     <div className="flex flex-wrap gap-3 justify-center">
-      {categories.map((category) => {
+      {allCategories.map((category) => {
+        // Check if this category is selected
+        const isSelected = category === selectedCategory;
+
+        // Get post count for this category
         const count = postCounts[category] || 0;
-        const isSelected = selectedCategory === category;
 
         return (
           <button
             key={category}
             onClick={() => onSelectCategory(category)}
             className={`
-              px-6 py-3 rounded-xl font-medium transition-all duration-200
-              flex items-center gap-2
+              px-6 py-3 rounded-xl font-semibold transition-all duration-200
               ${
                 isSelected
                   ? "bg-blue-600 text-white shadow-lg scale-105"
-                  : "bg-white text-gray-700 hover:bg-gray-100 hover:shadow-md border-2 border-gray-200"
+                  : "bg-white text-gray-700 hover:bg-gray-100 shadow-md hover:shadow-lg"
               }
             `}
           >
-            <span>{category}</span>
-            <span
-              className={`
-              text-sm px-2 py-0.5 rounded-full
-              ${
-                isSelected
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-200 text-gray-600"
-              }
-            `}
-            >
-              {count}
-            </span>
+            {category} ({count})
           </button>
         );
       })}

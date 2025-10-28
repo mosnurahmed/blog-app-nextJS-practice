@@ -6,7 +6,12 @@ import Link from "next/link";
 import BlogPageContent from "./BlogPageContent";
 import BlogCardSkeleton from "@/components/blog/BlogCardSkeleton";
 
-// ✅ Loading fallback component
+// কি করছি: Database functions import করছি
+// কেন করছি: Server Component থেকে data fetch করতে
+// কিভাবে: Named imports from database.ts file
+import { getAllPostsFromDB, getAllCategoriesFromDB } from "@/lib/blog/database";
+
+// Loading fallback component
 function BlogPageLoading() {
   return (
     <>
@@ -37,6 +42,34 @@ function BlogPageLoading() {
   );
 }
 
+// কি করছি: Async wrapper component data fetch এর জন্য
+// কেন করছি: Server Component এ async data loading করতে
+// কিভাবে: async function যেটা database queries run করে
+
+async function BlogPageData() {
+  // কি করছি: Database থেকে posts এবং categories fetch করছি parallel এ
+  // কেন করছি: Page render করার জন্য data দরকার
+  // কিভাবে: Promise.all দিয়ে both queries simultaneously run করছি
+
+  // Promise.all কি করে:
+  // - দুইটা async operations একসাথে start করে
+  // - দুইটাই complete হওয়ার জন্য wait করে
+  // - দুইটা results একসাথে return করে
+  // Benefits: Faster than sequential (এক এর পর এক)
+
+  const [posts, categories] = await Promise.all([
+    getAllPostsFromDB(), // Fetch all published posts
+    getAllCategoriesFromDB(), // Fetch all categories with counts
+  ]);
+
+  // কি return করছি: BlogPageContent component with fetched data as props
+  // Server Component থেকে Client Component এ data pass হচ্ছে
+  return (
+    <BlogPageContent initialPosts={posts} initialCategories={categories} />
+  );
+}
+
+// Main page component
 export default function BlogPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-16 px-4">
@@ -72,16 +105,27 @@ export default function BlogPage() {
           </p>
         </div>
 
-        {/* ✅ Wrap content in Suspense */}
+        {/* 
+          কি করছি: Suspense boundary with data fetching component
+          কেন করছি: Async data loading gracefully handle করতে
+          কিভাবে: Suspense shows fallback while BlogPageData fetches data
+          
+          Flow:
+          1. BlogPageData component mount হয়
+          2. Database queries start (await করে)
+          3. Meanwhile, BlogPageLoading shows (skeleton UI)
+          4. Queries complete হলে actual content replace করে loading UI
+          5. User smooth experience পায় - no blank screen
+        */}
         <Suspense fallback={<BlogPageLoading />}>
-          <BlogPageContent />
+          <BlogPageData />
         </Suspense>
       </div>
     </div>
   );
 }
 
-// ✅ Metadata for SEO
+// Metadata for SEO
 export const metadata = {
   title: "Blog | Next.js Blog App",
   description:

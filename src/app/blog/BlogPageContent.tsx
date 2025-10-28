@@ -1,150 +1,254 @@
 // src/app/blog/BlogPageContent.tsx
-// NEW FILE - Create this:
+// Replace ENTIRE file:
 
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+// কি করছি: React hooks এবং Next.js utilities import করছি
+// কেন করছি: State management, routing, transitions এর জন্য
+// কিভাবে: named imports দিয়ে specific functions নিচ্ছি
+
+import { useState, useMemo, useTransition, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+
+// UI Components import
 import BlogCard from "@/components/blog/BlogCard";
 import BlogCardSkeleton from "@/components/blog/BlogCardSkeleton";
 import SearchBar from "@/components/blog/SearchBar";
 import CategoryFilter from "@/components/blog/CategoryFilter";
 import SortDropdown from "@/components/blog/SortDropdown";
 import Pagination from "@/components/blog/Pagination";
-import {
-  getAllPosts,
-  sortPosts,
-  paginatePosts,
-  SortOption,
-} from "@/lib/blog/utils";
-import { getAllCategories } from "@/lib/data/blogPosts";
 
+// Utility functions (sorting, pagination logic)
+import { sortPosts, paginatePosts, SortOption } from "@/lib/blog/utils";
+
+// Types from Prisma
+import { PostWithRelations, CategoryWithCount } from "@/lib/blog/database";
+
+// Constants
 const POSTS_PER_PAGE = 6;
 
-export default function BlogPageContent() {
+// ============================================
+// Props Interface
+// ============================================
+// কি করছি: Component এর props define করছি TypeScript দিয়ে
+// কেন করছি: Type safety ensure করতে, bugs prevent করতে
+// কিভাবে: interface declaration যেখানে প্রতিটা prop এর type specify করা
+
+interface BlogPageContentProps {
+  // initialPosts: Server থেকে pre-fetched posts data
+  // এটা Server Component pass করবে এই Client Component কে
+  initialPosts: PostWithRelations[];
+
+  // initialCategories: Server থেকে pre-fetched categories
+  // Post counts সহ আসবে (কোন category তে কতগুলো posts)
+  initialCategories: CategoryWithCount[];
+}
+
+// ============================================
+// Main Component
+// ============================================
+export default function BlogPageContent({
+  initialPosts,
+  initialCategories,
+}: BlogPageContentProps) {
+  // ------------------------------------------
+  // Hooks Setup
+  // ------------------------------------------
+
+  // useRouter: URL programmatically change করার জন্য
+  // useSearchParams: URL query parameters read করার জন্য
+  // useTransition: Smooth UI transitions এর জন্য (loading states)
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  // Get initial values from URL
+  // ------------------------------------------
+  // State Management
+  // ------------------------------------------
+  // কি করছি: Component এর internal state manage করছি
+  // কেন করছি: User interactions track করতে (search, filter, sort)
+  // কিভাবে: useState hooks - প্রতিটা state একটা value store করে
+
+  // Search query state - user কি search করছে
   const initialSearch = searchParams.get("search") || "";
-  const initialCategory = searchParams.get("category") || "All";
-  const initialSort = (searchParams.get("sort") as SortOption) || "newest";
-  const initialPage = parseInt(searchParams.get("page") || "1");
-
-  const allPosts = getAllPosts();
-  const categories = getAllCategories();
-
-  // State
   const [searchQuery, setSearchQuery] = useState(initialSearch);
+
+  // Category filter state - কোন category selected
+  const initialCategory = searchParams.get("category") || "All";
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+
+  // Sort option state - কিভাবে posts sorted (newest, oldest, popular)
+  const initialSort = (searchParams.get("sort") as SortOption) || "newest";
   const [sortBy, setSortBy] = useState<SortOption>(initialSort);
+
+  // Pagination state - currently কোন page এ আছি
+  const initialPage = parseInt(searchParams.get("page") || "1");
   const [currentPage, setCurrentPage] = useState(initialPage);
 
-  // Update URL when filters change
+  // Posts state - displayed posts (filtered, sorted, paginated)
+  const [posts, setPosts] = useState(initialPosts);
+
+  // ------------------------------------------
+  // URL Update Function
+  // ------------------------------------------
+  // কি করছি: URL query parameters update করার helper function
+  // কেন করছি: User এর selections URL এ reflect করতে (shareable, bookmarkable)
+  // কিভাবে: URLSearchParams API use করে query string build করছি
+
   const updateURL = (updates: Record<string, string>) => {
+    // Current search params থেকে শুরু করছি
     const params = new URLSearchParams(searchParams.toString());
 
+    // Updates object loop করে প্রতিটা key-value set করছি
     Object.entries(updates).forEach(([key, value]) => {
       if (value && value !== "All") {
+        // Value আছে এবং 'All' না → params এ add করো
         params.set(key, value);
       } else {
+        // Value নাই বা 'All' → params থেকে remove করো
         params.delete(key);
       }
     });
 
+    // startTransition দিয়ে wrap করছি smooth transition এর জন্য
+    // এটা React 18 এর feature - UI responsive রাখে navigation এর সময়
     startTransition(() => {
       router.push(`?${params.toString()}`, { scroll: false });
     });
   };
 
-  // Filter, sort, and paginate posts
+  // ------------------------------------------
+  // Data Processing with useMemo
+  // ------------------------------------------
+  // কি করছি: Posts filter, sort, paginate করছি
+  // কেন করছি: User এর selections অনুযায়ী posts display করতে
+  // কিভাবে: useMemo hook - expensive calculations cache করে
+
+  // useMemo কি করে:
+  // - First time: Calculation run করে, result save করে
+  // - Next times: Dependencies না বদলালে saved result return করে
+  // - Dependencies বদলালে: Re-calculate করে
+  // Benefits: Performance optimize, unnecessary re-calculations avoid করে
+
   const { paginatedPosts, pagination } = useMemo(() => {
-    let posts = allPosts;
+    // Step 1: Start with all posts
+    let filteredPosts = posts;
 
-    // Apply category filter
+    // Step 2: Apply category filter
+    // যদি 'All' না হয় তাহলে শুধু selected category এর posts নাও
     if (selectedCategory !== "All") {
-      posts = posts.filter((post) => post.category === selectedCategory);
-    }
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      posts = posts.filter(
-        (post) =>
-          post.title.toLowerCase().includes(query) ||
-          post.excerpt.toLowerCase().includes(query) ||
-          post.content.toLowerCase().includes(query) ||
-          post.tags.some((tag) => tag.toLowerCase().includes(query))
+      filteredPosts = filteredPosts.filter(
+        (post) => post.category.name === selectedCategory
       );
     }
 
-    // Apply sorting
-    posts = sortPosts(posts, sortBy);
+    // Step 3: Apply search filter
+    // Search query খালি না হলে title/excerpt/content এ search করো
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filteredPosts = filteredPosts.filter(
+        (post) =>
+          post.title.toLowerCase().includes(query) ||
+          post.excerpt.toLowerCase().includes(query) ||
+          post.content.toLowerCase().includes(query)
+      );
+    }
 
-    // Apply pagination
-    const result = paginatePosts(posts, currentPage, POSTS_PER_PAGE);
+    // Step 4: Sort posts
+    // sortPosts utility function use করে (utils.ts এ defined)
+    filteredPosts = sortPosts(filteredPosts, sortBy);
 
+    // Step 5: Paginate
+    // paginatePosts utility function current page অনুযায়ী slice করে
+    const result = paginatePosts(filteredPosts, currentPage, POSTS_PER_PAGE);
+
+    // Return both paginated posts and pagination info
     return {
       paginatedPosts: result.posts,
       pagination: result.pagination,
     };
-  }, [allPosts, selectedCategory, searchQuery, sortBy, currentPage]);
+  }, [posts, selectedCategory, searchQuery, sortBy, currentPage]);
+  // Dependencies: এগুলো যেকোনো একটা change হলে re-calculate হবে
 
-  // Count posts per category
+  // ------------------------------------------
+  // Category Post Counts
+  // ------------------------------------------
+  // কি করছি: প্রতিটা category তে কতগুলো posts আছে calculate করছি
+  // কেন করছি: Category buttons এ count show করতে "Next.js (5)"
+  // কিভাবে: useMemo দিয়ে efficient calculation
+
   const postCounts = useMemo(() => {
-    const counts: Record<string, number> = { All: allPosts.length };
+    const counts: Record<string, number> = {
+      All: posts.length, // 'All' এ total posts
+    };
 
-    allPosts.forEach((post) => {
-      counts[post.category] = (counts[post.category] || 0) + 1;
+    // প্রতিটা post loop করে তার category count increase করো
+    posts.forEach((post) => {
+      const categoryName = post.category.name;
+      counts[categoryName] = (counts[categoryName] || 0) + 1;
     });
 
     return counts;
-  }, [allPosts]);
+  }, [posts]);
 
-  // Handle search
+  // ------------------------------------------
+  // Event Handlers
+  // ------------------------------------------
+  // এগুলো functions যেগুলো user actions handle করে
+
+  // Handle Search
+  // যখন user search bar এ type করে
   const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    setCurrentPage(1);
-    updateURL({ search: query, page: "1" });
+    setSearchQuery(query); // State update করো
+    setCurrentPage(1); // First page এ reset করো
+    updateURL({ search: query, page: "1" }); // URL update করো
   };
 
-  // Handle category change
+  // Handle Category Change
+  // যখন user category button click করে
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
     setCurrentPage(1);
     updateURL({ category, page: "1" });
   };
 
-  // Handle sort change
+  // Handle Sort Change
+  // যখন user sort dropdown থেকে option select করে
   const handleSortChange = (sort: SortOption) => {
     setSortBy(sort);
     setCurrentPage(1);
     updateURL({ sort, page: "1" });
   };
 
-  // Handle page change
+  // Handle Page Change
+  // যখন user pagination button click করে
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     updateURL({ page: page.toString() });
+    // Scroll to top smoothly যাতে user নতুন content দেখে
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Clear all filters
+  // Clear All Filters
+  // যখন user "Clear all" button click করে
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedCategory("All");
     setSortBy("newest");
     setCurrentPage(1);
-    router.push("/blog");
+    router.push("/blog"); // Clean URL এ navigate করো
   };
 
+  // Check if any filters are active
   const hasActiveFilters =
     searchQuery || selectedCategory !== "All" || sortBy !== "newest";
 
+  // ------------------------------------------
+  // JSX Return - UI Rendering
+  // ------------------------------------------
   return (
     <>
-      {/* Search Bar */}
+      {/* Search Bar Section */}
       <div className="mb-8">
         <SearchBar
           onSearch={handleSearch}
@@ -152,20 +256,20 @@ export default function BlogPageContent() {
         />
       </div>
 
-      {/* Filters Row */}
+      {/* Category Filter Section */}
       <div className="mb-12">
         <h2 className="text-center text-xl font-semibold text-gray-700 mb-6">
           Filter & Sort
         </h2>
         <CategoryFilter
-          categories={categories}
+          categories={initialCategories.map((cat) => cat.name)}
           selectedCategory={selectedCategory}
           onSelectCategory={handleCategoryChange}
           postCounts={postCounts}
         />
       </div>
 
-      {/* Sort & Stats */}
+      {/* Sort & Stats Row */}
       <div className="mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
         <SortDropdown currentSort={sortBy} onSortChange={handleSortChange} />
 
@@ -178,7 +282,7 @@ export default function BlogPageContent() {
         </div>
       </div>
 
-      {/* Active Filters */}
+      {/* Active Filters Display */}
       {hasActiveFilters && (
         <div className="mb-8 flex flex-wrap items-center justify-center gap-3 bg-white rounded-lg p-4 shadow-md">
           <span className="text-gray-600 font-medium">Active filters:</span>

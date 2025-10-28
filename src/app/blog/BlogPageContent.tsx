@@ -86,7 +86,7 @@ export default function BlogPageContent({
   const [currentPage, setCurrentPage] = useState(initialPage);
 
   // Posts state - displayed posts (filtered, sorted, paginated)
-  const [posts, setPosts] = useState(initialPosts);
+  const posts = initialPosts;
 
   // ------------------------------------------
   // URL Update Function

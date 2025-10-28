@@ -7,7 +7,7 @@
 // কেন করছি: State management, routing, transitions এর জন্য
 // কিভাবে: named imports দিয়ে specific functions নিচ্ছি
 
-import { useState, useMemo, useTransition, useEffect } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 // UI Components import

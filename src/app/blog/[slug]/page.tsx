@@ -4,20 +4,23 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-
-// ✅ Correct imports from database.ts (NOT utils.ts)
 import {
   getPostBySlugFromDB,
   incrementPostViewsFromDB,
 } from "@/lib/blog/database";
 
+// ✅ Next.js 15: params is now a Promise
 interface PageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
-export default async function SinglePostPage({ params }: PageProps) {
+// ✅ Make function async and await params
+export default async function SinglePostPage(props: PageProps) {
+  // Await params (Next.js 15 requirement)
+  const params = await props.params;
+
   const post = await getPostBySlugFromDB(params.slug);
 
   if (!post) {
@@ -181,7 +184,9 @@ export default async function SinglePostPage({ params }: PageProps) {
   );
 }
 
-export async function generateMetadata({ params }: PageProps) {
+// ✅ generateMetadata also needs to await params
+export async function generateMetadata(props: PageProps) {
+  const params = await props.params;
   const post = await getPostBySlugFromDB(params.slug);
 
   if (!post) {

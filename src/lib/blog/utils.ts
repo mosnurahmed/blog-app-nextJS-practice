@@ -32,7 +32,8 @@ export type PostWithRelations = Post & {
 // কি করছি: Valid sort options এর union type
 // কেন করছি: TypeScript যাতে invalid options prevent করে
 // কিভাবে: String literal union type
-export type SortOption = 'newest' | 'oldest' | 'popular' | 'title'
+export type SortOption = 'newest' | 'oldest' | 'popular' | 'title' | 'most-viewed' | 'alphabetical'
+
 
 // ============================================
 // FUNCTION 1: Sort Posts
@@ -48,76 +49,35 @@ export function sortPosts(
   sortBy: SortOption
 ): PostWithRelations[] {
   
-  // কি করছি: Original array এর copy তৈরি করছি
-  // কেন করছি: Original array mutate করা avoid করতে (immutability)
-  // কিভাবে: Spread operator [...posts] নতুন array create করে
-  
-  // Immutability কেন important:
-  // - React re-renders properly trigger হয়
-  // - Bugs avoid হয় (unexpected mutations থেকে)
-  // - Debugging easier (data changes track করা যায়)
   const sortedPosts = [...posts]
-  
-  // কি করছি: sort() method call করছি appropriate comparator দিয়ে
-  // কেন করছি: Array.sort() in-place sort করে, তাই copy তে করছি
-  // কিভাবে: switch statement দিয়ে sortBy অনুযায়ী logic
   
   switch (sortBy) {
     case 'newest':
-      // কি করছি: createdAt date দিয়ে descending sort
-      // কেন করছি: Latest posts প্রথমে দেখাতে
-      // কিভাবে: Date comparison - new Date() convert করে timestamp এ
-      
-      // Comparator function explanation:
-      // - Takes two elements: a, b
-      // - Returns: negative (a before b), 0 (equal), positive (b before a)
-      // - getTime() converts Date to milliseconds (number)
-      // - b - a gives descending order (larger first)
       return sortedPosts.sort((a, b) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )
     
     case 'oldest':
-      // কি করছি: createdAt date দিয়ে ascending sort
-      // কেন করছি: Oldest posts প্রথমে দেখাতে
-      // কিভাবে: a - b ascending order দেয় (smaller first)
       return sortedPosts.sort((a, b) => 
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       )
     
     case 'popular':
-      // কি করছি: views count দিয়ে descending sort
-      // কেন করছি: Most viewed posts প্রথমে দেখাতে
-      // কিভাবে: Simple numeric comparison
-      
-      // views already number type, direct comparison possible
-      // Higher views = more popular = should come first (descending)
+    case 'most-viewed':  // ✅ Add this case
       return sortedPosts.sort((a, b) => b.views - a.views)
     
     case 'title':
-      // কি করছি: title alphabetically sort করছি
-      // কেন করছি: A-Z order এ posts দেখাতে
-      // কিভাবে: localeCompare method - proper string comparison
-      
-      // localeCompare কি করে:
-      // - Language-aware comparison (proper handling of accents, etc.)
-      // - Case-insensitive option available
-      // - Returns -1, 0, or 1 (perfect for sort comparator)
-      // - Better than simple < > operators for strings
+    case 'alphabetical':  // ✅ Add this case
       return sortedPosts.sort((a, b) => 
         a.title.localeCompare(b.title)
       )
     
     default:
-      // কি করছি: Default case - newest first
-      // কেন করছি: Fallback যদি invalid sortBy pass হয়
-      // কিভাবে: Same logic as 'newest' case
       return sortedPosts.sort((a, b) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )
   }
 }
-
 // ============================================
 // FUNCTION 2: Paginate Posts
 // ============================================

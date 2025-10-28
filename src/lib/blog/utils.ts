@@ -371,7 +371,18 @@ export function truncateText(text: string, maxLength: number): string {
   // Input: "This is a very long text that needs truncating", maxLength: 20
   // Output: "This is a very long..."
 }
-
+export interface PaginationInfo {
+  currentPage: number
+  totalPages: number
+  totalPosts: number
+  postsPerPage: number
+  hasPrevPage: boolean
+  hasNextPage: boolean
+  prevPage: number | null
+  nextPage: number | null
+  startIndex: number
+  endIndex: number
+}
 // ============================================
 // SUMMARY
 // ============================================

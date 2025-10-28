@@ -1,7 +1,24 @@
 // src/components/blog/Pagination.tsx
+// Replace ENTIRE file:
+
 "use client";
 
-import { PaginationInfo } from "@/lib/blog/utils";
+// কি করছি: Pagination type locally define করছি
+// কেন করছি: utils.ts থেকে import না করে direct define
+// কিভাবে: Interface declaration component file এ
+
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalPosts: number;
+  postsPerPage: number;
+  hasPrevPage: boolean;
+  hasNextPage: boolean;
+  prevPage: number | null;
+  nextPage: number | null;
+  startIndex: number;
+  endIndex: number;
+}
 
 interface PaginationProps {
   pagination: PaginationInfo;
@@ -17,14 +34,14 @@ export default function Pagination({
     totalPages,
     hasPrevPage,
     hasNextPage,
-    totalPosts,
-    postsPerPage,
+    prevPage,
+    nextPage,
   } = pagination;
 
-  // Generate page numbers to show
+  // Generate page numbers to display
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
-    const maxVisible = 5;
+    const maxVisible = 5; // Maximum page numbers to show
 
     if (totalPages <= maxVisible) {
       // Show all pages if total is small
@@ -32,28 +49,25 @@ export default function Pagination({
         pages.push(i);
       }
     } else {
-      // Always show first page
-      pages.push(1);
-
-      if (currentPage > 3) {
+      // Complex logic for many pages
+      if (currentPage <= 3) {
+        // Near start
+        for (let i = 1; i <= 4; i++) pages.push(i);
         pages.push("...");
-      }
-
-      // Show current page and neighbors
-      for (
-        let i = Math.max(2, currentPage - 1);
-        i <= Math.min(totalPages - 1, currentPage + 1);
-        i++
-      ) {
-        pages.push(i);
-      }
-
-      if (currentPage < totalPages - 2) {
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        // Near end
+        pages.push(1);
         pages.push("...");
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        // In middle
+        pages.push(1);
+        pages.push("...");
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push("...");
+        pages.push(totalPages);
       }
-
-      // Always show last page
-      pages.push(totalPages);
     }
 
     return pages;
@@ -62,21 +76,20 @@ export default function Pagination({
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
-      {/* Info */}
-      <div className="text-center text-sm text-gray-600 mb-4">
-        Showing {(currentPage - 1) * postsPerPage + 1} -{" "}
-        {Math.min(currentPage * postsPerPage, totalPosts)} of {totalPosts} posts
+    <div className="flex flex-col items-center gap-4">
+      {/* Page Info */}
+      <div className="text-gray-600 text-sm">
+        Page {currentPage} of {totalPages}
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-center gap-2 flex-wrap">
+      {/* Pagination Buttons */}
+      <div className="flex items-center gap-2">
         {/* Previous Button */}
         <button
-          onClick={() => onPageChange(currentPage - 1)}
+          onClick={() => prevPage && onPageChange(prevPage)}
           disabled={!hasPrevPage}
           className={`
-            px-4 py-2 rounded-lg font-medium transition-all
+            px-4 py-2 rounded-lg font-semibold transition-all
             ${
               hasPrevPage
                 ? "bg-blue-600 text-white hover:bg-blue-700"
@@ -88,45 +101,44 @@ export default function Pagination({
         </button>
 
         {/* Page Numbers */}
-        {pageNumbers.map((page, index) => {
-          if (page === "...") {
+        <div className="flex items-center gap-2">
+          {pageNumbers.map((page, index) => {
+            if (page === "...") {
+              return (
+                <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
+                  ...
+                </span>
+              );
+            }
+
+            const pageNum = page as number;
+            const isActive = pageNum === currentPage;
+
             return (
-              <span
-                key={`ellipsis-${index}`}
-                className="px-3 py-2 text-gray-400"
+              <button
+                key={pageNum}
+                onClick={() => onPageChange(pageNum)}
+                className={`
+                  px-4 py-2 rounded-lg font-semibold transition-all
+                  ${
+                    isActive
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-gray-700 hover:bg-gray-100"
+                  }
+                `}
               >
-                ...
-              </span>
+                {pageNum}
+              </button>
             );
-          }
-
-          const pageNum = page as number;
-          const isActive = pageNum === currentPage;
-
-          return (
-            <button
-              key={pageNum}
-              onClick={() => onPageChange(pageNum)}
-              className={`
-                px-4 py-2 rounded-lg font-medium transition-all
-                ${
-                  isActive
-                    ? "bg-blue-600 text-white shadow-lg scale-110"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }
-              `}
-            >
-              {pageNum}
-            </button>
-          );
-        })}
+          })}
+        </div>
 
         {/* Next Button */}
         <button
-          onClick={() => onPageChange(currentPage + 1)}
+          onClick={() => nextPage && onPageChange(nextPage)}
           disabled={!hasNextPage}
           className={`
-            px-4 py-2 rounded-lg font-medium transition-all
+            px-4 py-2 rounded-lg font-semibold transition-all
             ${
               hasNextPage
                 ? "bg-blue-600 text-white hover:bg-blue-700"
@@ -136,13 +148,6 @@ export default function Pagination({
         >
           Next →
         </button>
-      </div>
-
-      {/* Quick Jump */}
-      <div className="mt-4 text-center">
-        <span className="text-sm text-gray-600">
-          Page {currentPage} of {totalPages}
-        </span>
       </div>
     </div>
   );
